@@ -13,6 +13,9 @@ import org.jetbrains.exposed.sql.transactions.transaction
 object BudgetService {
     suspend fun addRecord(body: BudgetRecord): BudgetRecord = withContext(Dispatchers.IO) {
         transaction {
+            if (body.authorId != null) {
+                AuthorEntity[body.authorId]
+            }
             val entity = BudgetEntity.new {
                 this.year = body.year
                 this.month = body.month
@@ -44,7 +47,7 @@ object BudgetService {
             val data = BudgetEntity.wrapRows(query).map {
                 val budget = it.toResponse()
                 if (budget.authorId != null) {
-                    val author = AuthorEntity.get(budget.authorId)
+                    val author = AuthorEntity[budget.authorId]
                     return@map BudgetAuthorResponseRecord(
                         budget.year,
                         budget.month,
