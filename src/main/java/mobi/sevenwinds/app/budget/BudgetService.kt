@@ -31,7 +31,7 @@ object BudgetService {
     suspend fun getYearStats(param: BudgetYearParam): BudgetYearStatsResponse = withContext(Dispatchers.IO) {
         transaction {
             val query = if (param.name != null) (BudgetTable leftJoin AuthorTable)
-                .select { BudgetTable.year eq param.year and AuthorTable.fullName.lowerCase().like("%${param.name}%")}
+                .select { BudgetTable.year eq param.year and AuthorTable.fullName.lowerCase().like("%${param.name.toLowerCase()}%")}
                 .limit(param.limit, param.offset)
                 .orderBy(Pair(BudgetTable.month, SortOrder.ASC), Pair(BudgetTable.amount, SortOrder.DESC))
             else {
@@ -40,8 +40,9 @@ object BudgetService {
                     .limit(param.limit, param.offset)
                     .orderBy(Pair(BudgetTable.month, SortOrder.ASC), Pair(BudgetTable.amount, SortOrder.DESC))
             }
-            val queryAll = BudgetTable
-                .select { BudgetTable.year eq param.year }
+            val queryAll = if (param.name != null)
+                (BudgetTable leftJoin AuthorTable).select { BudgetTable.year eq param.year and AuthorTable.fullName.lowerCase().like("%${param.name.toLowerCase()}%")}
+                else BudgetTable.select { BudgetTable.year eq param.year }
 
             val total = queryAll.count()
             val data = BudgetEntity.wrapRows(query).map {
